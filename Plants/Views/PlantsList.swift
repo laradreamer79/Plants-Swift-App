@@ -4,51 +4,67 @@ struct PlantsList: View {
     let plantListViewModel: PlantListViewModel
 
     @State private var showReminder = false
+    @State private var selectedPlant: PlantList?
 
     var body: some View {
-        @Bindable var viewModel = plantListViewModel
-
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("My Plants 🌱")
-                        .font(.largeTitle.bold())
-                        .padding(.horizontal, 16)
-                        .padding(.top, 24)
-                        .padding(.bottom, 22)
+            List {
+                    PlantHeader()
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.black)
 
-                    Divider()
-                        .padding(.horizontal, 16)
-
-                    if viewModel.plants.isEmpty {
-                        ContentUnavailableView(
-                            "Your collection starts here",
-                            systemImage: "leaf",
-                            description: Text("Add a plant to keep its care details in one place.")
-                        )
-                        .padding(.vertical, 40)
+                    if plantListViewModel.plants.isEmpty {
+                        EmptyView()
+                    } else if plantListViewModel.allPlantsWatered {
+                        AllRemindersCompleted()
+                            .listRowInsets(EdgeInsets())
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.black)
                     } else {
                         WateringSummary(
-                            wateredCount: viewModel.plants.filter { $0.isWatered }.count,
-                            totalCount: viewModel.plants.count
+                            wateredCount: plantListViewModel.wateredCount,
+                            totalCount: plantListViewModel.plants.count,
+                            progress: plantListViewModel.wateringProgress,
+                            message: plantListViewModel.wateringMessage
                         )
                         .padding(.horizontal, 26)
                         .padding(.top, 38)
                         .padding(.bottom, 46)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
 
-                        LazyVStack(spacing: 0) {
-                            ForEach($viewModel.plants) { $plant in
-                                PlantCareRow(plant: $plant)
+                            ForEach(plantListViewModel.plants) { plant in
+                                PlantCareRow(plant: plant, onToggleWatered: {
+                                    plantListViewModel.toggleWatered(for: plant.id)
+                                }, onEdit: {
+                                    selectedPlant = plant
+                                })
+                                .listRowInsets(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 10))
+                                .listRowSeparator(.hidden)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        plantListViewModel.deletePlant(id: plant.id)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    .tint(.red)
+                                }
                             }
-                        }
-                        .padding(.horizontal, 10)
                     }
-                }
-                .padding(.bottom, 24)
-                .frame(maxWidth: 600)
-                .frame(maxWidth: .infinity)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .environment(\.defaultMinListRowHeight, 0)
             .background(Color.black)
+            .overlay {
+                if plantListViewModel.plants.isEmpty {
+                    Text("No reminders set yet..")
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(.gray)
+                        .allowsHitTesting(false)
+                }
+            }
             .safeAreaInset(edge: .bottom, alignment: .trailing) {
                 Button {
                     showReminder = true
@@ -72,23 +88,52 @@ struct PlantsList: View {
                 .padding(.bottom, 16)
                 .padding(.top, 12)
             }
-            .sheet(isPresented: $showReminder) {
-                SetReminder(plantListViewModel: plantListViewModel)
-            }
+        }
+        .sheet(isPresented: $showReminder) {
+            SetReminder(plantListViewModel: plantListViewModel)
+        }
+        .sheet(item: $selectedPlant) { plant in
+            SetReminder(plantListViewModel: plantListViewModel, plant: plant)
         }
         .preferredColorScheme(.dark)
+    }
+}
+
+private struct AllRemindersCompleted: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            Image("plant")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 220, maxHeight: 240)
+                .accessibilityHidden(true)
+                .padding(.bottom, 28)
+
+            Text("All Done! 🎉")
+                .font(.title2.bold())
+                .foregroundStyle(.white)
+
+            Text("All Reminders Completed")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.top, 12)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 24)
+        .padding(.top, 110)
+        .padding(.bottom, 40)
     }
 }
 
 private struct WateringSummary: View {
     let wateredCount: Int
     let totalCount: Int
+    let progress: Double
+    let message: LocalizedStringResource
 
     var body: some View {
         VStack(spacing: 16) {
-            Text(wateredCount == totalCount
-                 ? "Your plants are all watered 🌿"
-                 : "Your plants are waiting for a sip 💦")
+            Text(message)
                 .font(.body)
                 .multilineTextAlignment(.center)
 
@@ -97,7 +142,7 @@ private struct WateringSummary: View {
                     Capsule().fill(Color(white: 0.15))
                     Capsule()
                         .fill(.mint)
-                        .frame(width: geometry.size.width * Double(wateredCount) / Double(max(totalCount, 1)))
+                        .frame(width: geometry.size.width * progress)
                 }
             }
             .frame(height: 8)
@@ -109,13 +154,15 @@ private struct WateringSummary: View {
 }
 
 private struct PlantCareRow: View {
-    @Binding var plant: PlantList
+    let plant: PlantList
+    let onToggleWatered: () -> Void
+    let onEdit: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 Button {
-                    plant.isWatered.toggle()
+                    onToggleWatered()
                 } label: {
                     Image(systemName: plant.isWatered ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 25, weight: .ultraLight))
@@ -128,7 +175,8 @@ private struct PlantCareRow: View {
                                     ? "Mark \(plant.name) as not watered"
                                     : "Mark \(plant.name) as watered")
 
-                VStack(alignment: .leading, spacing: 8) {
+                Button(action: onEdit) {
+                    VStack(alignment: .leading, spacing: 8) {
                     Label("in \(plant.room.rawValue.capitalized)", systemImage: "location")
                         .font(.subheadline)
                         .foregroundStyle(.gray)
@@ -149,7 +197,11 @@ private struct PlantCareRow: View {
                     }
                     .opacity(plant.isWatered ? 0.6 : 1)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Edit reminder")
             }
             .padding(.vertical, 12)
 
@@ -184,17 +236,31 @@ private struct PlantWaterBadge: View {
     }
 }
 
+private struct PlantsListPreview: View {
+    @State private var viewModel: PlantListViewModel
+
+    init(showSamplePlants: Bool) {
+        let viewModel = PlantListViewModel()
+        if showSamplePlants {
+            viewModel.plants = [
+                PlantList(id: UUID(), name: "Monstera", room: .kitchen),
+                PlantList(id: UUID(), name: "Pothos", room: .bedroom),
+                PlantList(id: UUID(), name: "Orchid", room: .livingroom),
+                PlantList(id: UUID(), name: "Spider", room: .kitchen)
+            ]
+        }
+        _viewModel = State(initialValue: viewModel)
+    }
+
+    var body: some View {
+        PlantsList(plantListViewModel: viewModel)
+    }
+}
+
 #Preview("Plant collection") {
-    let viewModel = PlantListViewModel()
-    viewModel.plants = [
-        PlantList(id: UUID(), name: "Monstera", room: .kitchen),
-        PlantList(id: UUID(), name: "Pothos", room: .bedroom),
-        PlantList(id: UUID(), name: "Orchid", room: .livingroom),
-        PlantList(id: UUID(), name: "Spider", room: .kitchen)
-    ]
-    return PlantsList(plantListViewModel: viewModel)
+    PlantsListPreview(showSamplePlants: true)
 }
 
 #Preview("Empty collection") {
-    PlantsList(plantListViewModel: PlantListViewModel())
+    PlantsListPreview(showSamplePlants: false)
 }

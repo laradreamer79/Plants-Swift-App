@@ -1,11 +1,14 @@
 import SwiftUI
 
 @main struct MyApp: App {
+    init() {
+        _ = PlantNotificationService.shared
+    }
+
     var body: some Scene {
         WindowGroup {
-            @State var userName: String = "Lara"
-            ContentView()
-            
+            Home()
+                .preferredColorScheme(.dark)
         }
     }
 }

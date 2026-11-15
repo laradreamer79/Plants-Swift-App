@@ -21,6 +21,12 @@ final class PlantNotificationService: NSObject, UNUserNotificationCenterDelegate
             return false
         }
 
+        let pending = await center.pendingNotificationRequests()
+        let requestID = identifier(for: plant.id)
+        guard pending.count < 64 || pending.contains(where: { $0.identifier == requestID }) else {
+            throw SchedulingError.limitReached
+        }
+
         let content = UNMutableNotificationContent()
         content.title = "Plant watering reminder"
         content.body = "Hey! Let's water \(plant.name) 🪴"
@@ -48,6 +54,14 @@ final class PlantNotificationService: NSObject, UNUserNotificationCenterDelegate
 
     func clearDelivered(id: UUID) {
         center.removeDeliveredNotifications(withIdentifiers: [identifier(for: id)])
+    }
+
+    private enum SchedulingError: LocalizedError {
+        case limitReached
+
+        var errorDescription: String? {
+            "The notification limit has been reached. Remove an unused reminder and save this plant again."
+        }
     }
 
     private func identifier(for id: UUID) -> String {
