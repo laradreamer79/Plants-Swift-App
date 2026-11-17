@@ -64,8 +64,7 @@ struct SetReminder: View {
                         }
                         .foregroundStyle(.white)
                         .listRowBackground(Color.field)
-                        .listRowSeparator(.visible, edges: .bottom)
-                        .listRowSeparatorTint(.fieldlabel)
+                        .listRowSeparatorTint(Color.rowSeperator)
                         
                         Section{
                             
@@ -89,7 +88,7 @@ struct SetReminder: View {
                             
                             
                         }
-                        .listRowSeparatorTint(.fieldlabel)
+                        .listRowSeparatorTint(Color.rowSeperator)
                         .foregroundStyle(.white)
                         .listRowBackground(Color.field)
                         if viewModel.plantID != nil {
