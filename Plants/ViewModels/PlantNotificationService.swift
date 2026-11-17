@@ -34,8 +34,8 @@ final class PlantNotificationService: NSObject, UNUserNotificationCenterDelegate
         content.userInfo = ["plantID": plant.id.uuidString]
 
         let trigger = UNTimeIntervalNotificationTrigger(
-            timeInterval: TimeInterval(plant.wateringDays.intervalDays * 24 * 60 * 60),
-            repeats: true
+            timeInterval: 60,
+            repeats: false
         )
         let request = UNNotificationRequest(
             identifier: identifier(for: plant.id),
