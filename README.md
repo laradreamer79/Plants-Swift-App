@@ -2,10 +2,7 @@
 
 A SwiftUI iOS app for keeping plant care details in one place and remembering when to water them. Add your plants, choose a watering interval, and track watering progress with local reminders.
 
-## Screenshots
-
-
-<img src="docs/screenshots/welcome.png" alt="Welcome screen with the Set Plant Reminder button" width="250">  <img src="docs/screenshots/plant-list.png" alt="Plant list showing care details and watering progress" width="250">  <img src="docs/screenshots/set-reminder.png" alt="Set reminder form with plant name and care options" width="250"> 
+<img width="1536" height="1024" alt="Plant Care App on iPhones" src="https://github.com/user-attachments/assets/2ede3b67-8978-4b13-9b37-da792a850088" />
 
 ## Features
 
