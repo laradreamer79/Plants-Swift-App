@@ -4,9 +4,8 @@ A SwiftUI iOS app for keeping plant care details in one place and remembering wh
 
 ## Screenshots
 
-| Welcome | Plant list | Set reminder |
-|---|---|---|
-| <img src="docs/screenshots/welcome.png" alt="Welcome screen with the Set Plant Reminder button" width="250"> | <img src="docs/screenshots/plant-list.png" alt="Plant list showing care details and watering progress" width="250"> | <img src="docs/screenshots/set-reminder.png" alt="Set reminder form with plant name and care options" width="250"> |
+
+<img src="docs/screenshots/welcome.png" alt="Welcome screen with the Set Plant Reminder button" width="250">  <img src="docs/screenshots/plant-list.png" alt="Plant list showing care details and watering progress" width="250">  <img src="docs/screenshots/set-reminder.png" alt="Set reminder form with plant name and care options" width="250"> 
 
 ## Features
 
@@ -72,49 +71,3 @@ User action in a SwiftUI view
 ```
 
 The view models use Observation’s `@Observable` macro. Asynchronous notification operations use Swift concurrency (`Task`, `async`, and `await`).
-
-## Local notifications
-
-Notifications use Apple’s `UserNotifications` framework; no notification server is required. A typical message is:
-
-> **Plant watering reminder**
-> Hey! Let's water Pothos 🪴
-
-Supported intervals are **1, 2, 3, 7, 10, and 14 days**. The service converts each interval to seconds and creates a repeating `UNTimeIntervalNotificationTrigger`.
-
-- The first saved reminder requests alert and sound permission when permission has not been determined.
-- Saving an edit replaces the plant’s existing request using its stable UUID-based identifier.
-- Marking a plant watered restarts its interval and clears its delivered notification.
-- Deleting a plant removes its pending and delivered notifications.
-- Scheduling and cancellation run in sequence to avoid a delayed request recreating a deleted reminder.
-- The service requests banner, sound, and Notification Center presentation while the app is open.
-- If permission is denied or scheduling fails, the plant remains saved and the app displays a message.
-
-Intervals are measured from scheduling, not a fixed time of day. For example, “Every 2 Days” means every 48 hours. Editing a reminder also restarts that interval. Delivery and presentation depend on the device’s notification settings.
-
-If permission was denied, enable notifications in iOS Settings, then save the plant’s reminder again to schedule it. The service includes a guard against adding a new request when 64 notifications are already pending.
-
-## Persistence
-
-The current implementation uses **Codable JSON stored in UserDefaults**, under the key `savedPlants`. It does **not** use SwiftData or cloud synchronization.
-
-Changes to the plant array trigger a save. The view model restores the array during initialization. On launch and when the app becomes active, plants whose next watering date has passed are marked as needing water again.
-
-The `usesNotifications` flag currently controls both notification operations and persistence. The running `Home` enables it; canvas previews and default view-model instances keep it disabled so sample data does not schedule reminders or overwrite saved plants.
-
-## Manual verification
-
-1. Add a plant and check its displayed details.
-2. Edit its name and care options; confirm saving updates the same plant.
-3. Change a draft and close with **X**; confirm the saved details stay unchanged.
-4. Mark plants watered and check the progress and completion screen.
-5. Delete a plant using both supported deletion paths.
-6. Close and relaunch the running app to check restored data.
-7. Check notification permission and delivery in the running app. Normal schedules start after the selected interval, so the shortest production reminder is 24 hours after scheduling.
-
-## Current scope
-
-- Plant data is stored locally on the device, with no account or cross-device sync.
-- Watering status refreshes on launch or app activation; there is no continuous background status refresh.
-- The completion screen hides plant rows until a plant becomes due or an unwatered plant is added.
-- Notifications carry a plant ID, but tapping one does not currently navigate directly to that plant’s editor.
